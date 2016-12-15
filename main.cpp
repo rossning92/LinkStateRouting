@@ -35,16 +35,6 @@ public:
     }
 };
 
-/*class ConnectedRouter
- {
- public:
-	int RouterID;
-	int Cost;
-	
-	ConnectedRouter(int routerId, int cost)
- : RouterID(routerId), Cost(cost) {}
- };*/
-
 class Router{
 public:
     int ID;
@@ -82,7 +72,7 @@ public:
         t.TTL--;
         if(t.TTL>0&&(ReceivedLSP.find(t.RouterID)==ReceivedLSP.end()||(ReceivedLSP.find(t.RouterID)!=ReceivedLSP.end()&&ReceivedLSP[lsp.RouterID]<t.SeqNum))){
             ReceivedLSP[lsp.RouterID]=t.SeqNum;
-            //todo: how to sand lsp?
+            //todo: how to send lsp?
         }
     }
     
@@ -165,42 +155,40 @@ void initRouters(map<int, Router>& routers) {
 int main() {
     map<int, Router> g_routers;
     initRouters(g_routers);
+    cout << "Routers Created!" << endl;
     
-<<<<<<< HEAD
-    cout <<'Routers Created!'<<endl;
-=======
     while (true) {
         
-    	cout << "+-------------------------------------+\n"
-             << "| C: continue                         |\n"
-			 << "| Q: quit                             |\n"
-			 << "| P: print routing table by router-id |\n"
-			 << "| S: shutdown router by router-id     |\n"
-			 << "| T: start up router by router-id     |\n"
-			 << "|                                     |\n"
-             << "| Please press key to continue...     |\n"
-			 << "+-------------------------------------+\n";
-			
-		char key;
-		cin >> key;
-		if (key == 'c') {
-		    
-			//cout << 'c' << endl;
-			
-		} else if (key == 'q') {
-		    cout << "Bye!" << endl;
-			break;
-		} else if (key == 'p') {
-			cout << "[print routing table]" << endl;
-		} else if (key == 's') {
-			cout << "[shutdown router]" << endl;
-		} else if (key == 't') {
-			cout << "[startup router]" << endl;
-		}
-	}
+        cout << "+-------------------------------------+\n"
+        << "| C: continue                         |\n"
+        << "| Q: quit                             |\n"
+        << "| P: print routing table by router-id |\n"
+        << "| S: shutdown router by router-id     |\n"
+        << "| T: start up router by router-id     |\n"
+        << "|                                     |\n"
+        << "| Please press key to continue...     |\n"
+        << "+-------------------------------------+\n";
+        
+        char key;
+        cin >> key;
+        if (key == 'c') {
+            
+            //cout << 'c' << endl;
+            
+        } else if (key == 'q') {
+            cout << "Bye!" << endl;
+            break;
+        } else if (key == 'p') {
+            cout << "[print routing table]" << endl;
+        } else if (key == 's') {
+            cout << "[shutdown router]" << endl;
+        } else if (key == 't') {
+            cout << "[startup router]" << endl;
+        }
+    }
     
     cout << '1'<<endl;
->>>>>>> origin/master
+    
     return 0;
 }
 
