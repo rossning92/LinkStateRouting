@@ -169,7 +169,7 @@ int main() {
     map<int, Router> g_routers;
     initRouters(g_routers);
     
-    cout << '1'<<endl;
+    cout <<'Routers Created!'<<endl;
     return 0;
 }
 
