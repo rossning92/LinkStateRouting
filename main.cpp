@@ -35,7 +35,7 @@ public:
     string Network;
     int Cost;
     int LSPNum;
-    vector <LSP> ConnectedNetwork;
+    vector <Router> ConnectedNetwork;
     list<pair<int, int>>NetworkGraph;
     map<int,int> ReceivedLSP;
     Router(int id,string net,int cost){
