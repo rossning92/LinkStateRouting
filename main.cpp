@@ -53,15 +53,15 @@ public:
         if(t.TTL>0&&(ReceivedLSP.find(t.RouterID)==ReceivedLSP.end()||(ReceivedLSP.find(t.RouterID)!=ReceivedLSP.end()&&ReceivedLSP[lsp.RouterID]<t.SeqNum))){
             ReceivedLSP[lsp.RouterID]=t.SeqNum;
             for(int i=0;i<ConnectedNetwork.size();i++){
-                .ReceiveLSP(t);
+                ConnectedNetwork[i].ReceiveLSP(t);
             }
         }
     }
     LSP OriginateLSP(){
         AddNum();
         LSP lsp(ID,LSPNum);
-        for(map<string,int>::iterator it=ConnectedNetwork.begin();it!=ConnectedNetwork.end();it++){
-            lsp.ReachableNetwork.insert(pair<string,int>(it->first,it->second));
+        for(int i=0;i<ConnectedNetwork.size();i++){
+            lsp.ReachableNetwork.insert(pair<string,int>(ConnectedNetwork[i].Network,ConnectedNetwork[i].Cost));
         }
         return lsp;
     }
@@ -72,8 +72,7 @@ public:
 
 
 int main() {
-    int i=12;
-    cout << to_string(12)<<endl;
+    cout << '1'<<endl;
     return 0;
 }
 
