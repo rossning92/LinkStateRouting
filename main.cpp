@@ -13,6 +13,7 @@
 #include <list>
 #include <map>
 #include <sstream>
+#include <cstdio>
 
 using namespace std;
 #define INFTY 2147483647;
@@ -168,6 +169,36 @@ void initRouters(map<int, Router>& routers) {
 int main() {
     map<int, Router> g_routers;
     initRouters(g_routers);
+    
+    while (true) {
+        
+    	cout << "+-------------------------------------+\n"
+             << "| C: continue                         |\n"
+			 << "| Q: quit                             |\n"
+			 << "| P: print routing table by router-id |\n"
+			 << "| S: shutdown router by router-id     |\n"
+			 << "| T: start up router by router-id     |\n"
+			 << "|                                     |\n"
+             << "| Please press key to continue...     |\n"
+			 << "+-------------------------------------+\n";
+			
+		char key;
+		cin >> key;
+		if (key == 'c') {
+		    
+			//cout << 'c' << endl;
+			
+		} else if (key == 'q') {
+		    cout << "Bye!" << endl;
+			break;
+		} else if (key == 'p') {
+			cout << "[print routing table]" << endl;
+		} else if (key == 's') {
+			cout << "[shutdown router]" << endl;
+		} else if (key == 't') {
+			cout << "[startup router]" << endl;
+		}
+	}
     
     cout << '1'<<endl;
     return 0;
