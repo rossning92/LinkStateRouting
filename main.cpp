@@ -23,15 +23,14 @@ public:
     int RouterID;
     int SeqNum;
     int TTL;
-    map<int,pair<string,int>> ReachNet;
+    map<string,int> ReachNet;
     LSP(int id,int seq){
         RouterID=id;
         SeqNum=seq;
         TTL=10;
     }
-    void AddNet(int a,string w,int b){
-        pair<string,int>p(w,b);
-        ReachNet.insert(pair<int,pair<string,int>>(a,p));
+    void AddNet(string w,int b){
+        ReachNet.insert(pair<string,int>(w,b));
     }
 };
 
@@ -41,8 +40,9 @@ public:
     string Net;
     int Cost;
     int LSPNum;
+    int Tick;
     map <int,int> DirectConRouter;
-    map<int,int> ReceivedLSP;
+    map<int,pair<int,int>> ReceivedLSP;
     map<string,pair<int,int>>RoutingTable;
     vector<list<pair<string, int>>> NetGraph;
     
@@ -53,6 +53,7 @@ public:
         ID = -1;
         Cost = -1;
         LSPNum = 0;
+        Tick = 0;
     }
     
     Router(int id,string net,int cost){
@@ -60,6 +61,8 @@ public:
         Net=net;
         Cost=cost;
         LSPNum=0;
+        Tick=0;
+        NetGraph[0].push_back(pair<string,int>(net,cost));
     }
     void AddConRouter(int a,int b){
         DirectConRouter.insert(pair<int,int>(a,b));
@@ -67,20 +70,32 @@ public:
     void AddNum(){
         LSPNum=LSPNum+1;
     }
+    void AddTick(){
+        Tick=Tick+1;
+    }
     void ReceiveLSP(LSP lsp){
         LSP t=lsp;
         t.TTL--;
-        if(t.TTL>0&&(ReceivedLSP.find(t.RouterID)==ReceivedLSP.end()||(ReceivedLSP.find(t.RouterID)!=ReceivedLSP.end()&&ReceivedLSP[lsp.RouterID]<t.SeqNum))){
-            ReceivedLSP[lsp.RouterID]=t.SeqNum;
+        if(t.TTL>0&&(ReceivedLSP.find(t.RouterID)==ReceivedLSP.end()||(ReceivedLSP.find(t.RouterID)!=ReceivedLSP.end()&&ReceivedLSP[lsp.RouterID].first<t.SeqNum))){
+            ReceivedLSP[lsp.RouterID].first=t.SeqNum;
+            ReceivedLSP[lsp.RouterID].second=Tick;
             //todo: how to send lsp?
         }
     }
     
-    LSP OriginateLSP(){
+    void OriginateLSP(map<int,Router> routers){
         AddNum();
         LSP lsp(ID,LSPNum);
-        //
-        return lsp;
+        lsp.AddNet(Net, Cost);
+        AddTick();
+        for(map<int,pair<int,int>>::iterator iter=ReceivedLSP.begin();iter!=ReceivedLSP.end();iter++){
+            if(Tick-(iter->second.second)>=2){
+                DirectConRouter[iter->first]=INFTY;
+            }
+        }
+        for(map<int,int>::iterator it=DirectConRouter.begin();it!=DirectConRouter.end();it++){
+            routers[it->first].ReceiveLSP(lsp);
+        }
     }
     
 };
@@ -105,8 +120,6 @@ void initRouters(map<int, Router>& routers) {
             }
             
             // create new router
-            router = Router();
-            
             stringstream ss(line);
             
             int routerId = -1;
@@ -123,10 +136,7 @@ void initRouters(map<int, Router>& routers) {
                     cost = atoi(word.c_str());
                 }
             }
-            
-            router.ID = routerId;
-            router.Net = networkName;
-            router.Cost = cost;
+            router = Router(routerId,networkName,cost);
             //cout << "rid: " << routerId << " netName: " << networkName << endl;
             
         } else {
@@ -134,7 +144,7 @@ void initRouters(map<int, Router>& routers) {
             stringstream ss(line);
             
             int neighborRouterId = -1;
-            int cost;
+            int cost=1;
             
             string word;
             while (ss >> word) {
@@ -144,8 +154,7 @@ void initRouters(map<int, Router>& routers) {
                     cost = atoi(word.c_str());
                 }
             }
-            
-            router.DirectConRouter.insert(pair<int,int>(neighborRouterId, cost));
+            router.AddConRouter(neighborRouterId, cost);
             //cout << "  neighbor: " << neighborRouterId << endl;
         }
     }
