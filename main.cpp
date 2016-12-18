@@ -36,9 +36,6 @@ public:
 
 class Router{
 public:
-    typedef int RouterIdT;
-    typedef int CostT;
-    
     static map<int, Router> Routers;
     
     int ID;
@@ -46,7 +43,7 @@ public:
     int Cost;
     int LSPNum;
     int Tick;
-    map<RouterIdT, CostT> DirectConRouter;
+    map<int, int> DirectConRouter; // map from : router ID => link cost
     map<int,pair<int,int>> ReceivedLSP;
     map<string,pair<int,int>>RoutingTable;
     vector<list<pair<string, int>>> NetGraph;
@@ -102,7 +99,7 @@ public:
         else return &it->second;
     }
     
-    void OriginateLSP(map<int,Router> routers){
+    void OriginateLSP() {
         AddNum();
         LSP lsp(ID,LSPNum);
         lsp.AddNet(Net, Cost);
@@ -113,7 +110,7 @@ public:
             }
         }
         for(map<int,int>::iterator it=DirectConRouter.begin();it!=DirectConRouter.end();it++){
-            routers[it->first].ReceiveLSP(lsp);
+            Routers[it->first].ReceiveLSP(lsp);
         }
     }
     
@@ -121,6 +118,10 @@ public:
         Router router;
         
         ifstream ifs("infile.dat");
+		if (!ifs) {
+			throw exception("Cannot open file infile.dat");
+		}
+
         string line;
         while (!ifs.eof()) {
             getline(ifs, line);
@@ -188,20 +189,23 @@ int main() {
     while (true) {
         
         cout << "+-------------------------------------+\n"
-            << "| C: continue                         |\n"
-            << "| Q: quit                             |\n"
-            << "| P: print routing table by router-id |\n"
-            << "| S: shutdown router by router-id     |\n"
-            << "| T: start up router by router-id     |\n"
-            << "|                                     |\n"
-            << "| Please press key to continue...     |\n"
-            << "+-------------------------------------+\n";
+			<< "| C: continue                         |\n"
+			<< "| Q: quit                             |\n"
+			<< "| P: print routing table by router-id |\n"
+			<< "| S: shutdown router by router-id     |\n"
+			<< "| T: start up router by router-id     |\n"
+			<< "|                                     |\n"
+			<< "| Please press key to continue...     |\n"
+			<< "+-------------------------------------+\n";
         
         char key;
         cin >> key;
         if (key == 'c') {
             
-            //cout << 'c' << endl;
+			for (auto it = Router::Routers.begin(); it != Router::Routers.end(); it++) {
+				auto router = it->second;
+				router.OriginateLSP();
+			}
             
         } else if (key == 'q') {
             cout << "Bye!" << endl;
