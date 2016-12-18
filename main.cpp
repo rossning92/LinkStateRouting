@@ -14,6 +14,7 @@
 #include <map>
 #include <sstream>
 #include <cstdio>
+#include <assert.h>
 
 using namespace std;
 #define INFTY 2147483647;
@@ -110,7 +111,10 @@ public:
             }
         }
         for(map<int,int>::iterator it=DirectConRouter.begin();it!=DirectConRouter.end();it++){
-            Routers[it->first].ReceiveLSP(lsp);
+			int routerId = it->first;
+			Router* r = GetRouterById(routerId);
+			assert(r);
+			r->ReceiveLSP(lsp);
         }
     }
     
@@ -124,17 +128,13 @@ public:
 
         string line;
         while (!ifs.eof()) {
+
             getline(ifs, line);
-            //cout << line << endl;
-            
-            
+			//cout << line << endl;
+
+            // read <routerId, networkName, networkCost>
             if (line[0] != ' ') {
-                
-                // add router to router list
-                if (router.ID >= 0) {
-                    Routers[router.ID] = router;
-                }
-                
+
                 // create new router
                 stringstream ss(line);
                 
@@ -173,6 +173,12 @@ public:
                 router.AddConRouter(neighborRouterId, cost);
                 //cout << "  neighbor: " << neighborRouterId << endl;
             }
+
+			// add router to router list
+			if (ifs.peek() == EOF || ifs.peek() != ' ') {
+				assert(router.ID >= 0);
+				Routers[router.ID] = router;
+			}
         }
     }
     
