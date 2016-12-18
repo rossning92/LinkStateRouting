@@ -96,7 +96,7 @@ public:
 	/*
 		fromRouterId: must use this ID to identify from which router the packet sent
 	*/
-    void ReceiveLSP(LSP lsp, int fromRouterId){
+    void ReceiveLSP(LSP lsp, int fromRouterId) {
         lsp.TTL--;
 
 		// indicates whether this lsp has been received
@@ -108,7 +108,10 @@ public:
             ReceivedLSP[lsp.RouterID].second = Tick;
             
 			bool updated = UpdateGraph(lsp);
-			cout << updated;
+			
+			if (updated) {
+				UpdateRoutingTable();
+			}
 
             // forward current LSP
             for (auto it = DirectConRouter.begin(); it != DirectConRouter.end(); it++) {
@@ -255,6 +258,11 @@ private:
 			NetGraph[r1][r0] = cost;
 			return true;
 		}
+	}
+
+	void UpdateRoutingTable()
+	{
+		// TODO: update routing table by running Dijkstra algorithm
 	}
 };
 
