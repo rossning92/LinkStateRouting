@@ -36,12 +36,17 @@ public:
 
 class Router{
 public:
+    typedef int RouterIdT;
+    typedef int CostT;
+    
+    static map<int, Router> Routers;
+    
     int ID;
     string Net;
     int Cost;
     int LSPNum;
     int Tick;
-    map <int,int> DirectConRouter;
+    map<RouterIdT, CostT> DirectConRouter;
     map<int,pair<int,int>> ReceivedLSP;
     map<string,pair<int,int>>RoutingTable;
     vector<list<pair<string, int>>> NetGraph;
@@ -62,7 +67,9 @@ public:
         Cost=cost;
         LSPNum=0;
         Tick=0;
-        NetGraph[0].push_back(pair<string,int>(net,cost));
+        
+        // XXX: 
+        // NetGraph[0].push_back(pair<string,int>(net,cost));
     }
     void AddConRouter(int a,int b){
         DirectConRouter.insert(pair<int,int>(a,b));
@@ -79,8 +86,20 @@ public:
         if(t.TTL>0&&(ReceivedLSP.find(t.RouterID)==ReceivedLSP.end()||(ReceivedLSP.find(t.RouterID)!=ReceivedLSP.end()&&ReceivedLSP[lsp.RouterID].first<t.SeqNum))){
             ReceivedLSP[lsp.RouterID].first=t.SeqNum;
             ReceivedLSP[lsp.RouterID].second=Tick;
+            
             //todo: how to send lsp?
+            for (auto it = DirectConRouter.begin(); it != DirectConRouter.end(); it++) {
+                int connRouterId = it->first;
+                
+                
+            }
         }
+    }
+    
+    static Router* GetRouterById(int routerId) {
+        auto it = Routers.find(routerId);
+        if (it == Routers.end()) return NULL;
+        else return &it->second;
     }
     
     void OriginateLSP(map<int,Router> routers){
@@ -98,85 +117,85 @@ public:
         }
     }
     
-};
-
-
-void initRouters(map<int, Router>& routers) {
-    
-    Router router;
-    
-    ifstream ifs("infile.dat");
-    string line;
-    while (!ifs.eof()) {
-        getline(ifs, line);
-        //cout << line << endl;
+    static void InitRouters() {
+        Router router;
         
-        
-        if (line[0] != ' ') {
+        ifstream ifs("infile.dat");
+        string line;
+        while (!ifs.eof()) {
+            getline(ifs, line);
+            //cout << line << endl;
             
-            // add router to router list
-            if (router.ID >= 0) {
-                routers[router.ID] = router;
-            }
             
-            // create new router
-            stringstream ss(line);
-            
-            int routerId = -1;
-            string networkName;
-            int cost = 1; // default value of cost
-            
-            string word;
-            while (ss >> word) {
-                if (routerId < 0) {
-                    routerId = atoi(word.c_str());
-                } else if (networkName.empty()) {
-                    networkName = word;
-                } else {
-                    cost = atoi(word.c_str());
+            if (line[0] != ' ') {
+                
+                // add router to router list
+                if (router.ID >= 0) {
+                    Routers[router.ID] = router;
                 }
-            }
-            router = Router(routerId,networkName,cost);
-            //cout << "rid: " << routerId << " netName: " << networkName << endl;
-            
-        } else {
-            
-            stringstream ss(line);
-            
-            int neighborRouterId = -1;
-            int cost=1;
-            
-            string word;
-            while (ss >> word) {
-                if (neighborRouterId < 0) {
-                    neighborRouterId = atoi(word.c_str());
-                } else {
-                    cost = atoi(word.c_str());
+                
+                // create new router
+                stringstream ss(line);
+                
+                int routerId = -1;
+                string networkName;
+                int cost = 1; // default value of cost
+                
+                string word;
+                while (ss >> word) {
+                    if (routerId < 0) {
+                        routerId = atoi(word.c_str());
+                    } else if (networkName.empty()) {
+                        networkName = word;
+                    } else {
+                        cost = atoi(word.c_str());
+                    }
                 }
+                router = Router(routerId,networkName,cost);
+                //cout << "rid: " << routerId << " netName: " << networkName << endl;
+                
+            } else {
+                
+                stringstream ss(line);
+                
+                int neighborRouterId = -1;
+                int cost=1;
+                
+                string word;
+                while (ss >> word) {
+                    if (neighborRouterId < 0) {
+                        neighborRouterId = atoi(word.c_str());
+                    } else {
+                        cost = atoi(word.c_str());
+                    }
+                }
+                router.AddConRouter(neighborRouterId, cost);
+                //cout << "  neighbor: " << neighborRouterId << endl;
             }
-            router.AddConRouter(neighborRouterId, cost);
-            //cout << "  neighbor: " << neighborRouterId << endl;
         }
     }
     
-}
+};
 
-int main() {
-    map<int, Router> g_routers;
-    initRouters(g_routers);
+map<int, Router> Router::Routers;
+
+
+int main() {    
+    Router::InitRouters();
+    
     cout << "Routers Created!" << endl;
     
     while (true) {
         
         cout << "+-------------------------------------+\n"
-        << "| C: continue                         |\n"
-        << "| Q: quit                             |\n"
-        << "| P: print routing table by router-id |\n"
-        << "| S: shutdown router by router-id     |\n"
-        << "| T: start up router by router-id     |\n"
-        << "|                                     |\n"
-        << "| Please press key to continue...     |\n"
-        << "+-------------------------------------+\n";
+            << "| C: continue                         |\n"
+            << "| Q: quit                             |\n"
+            << "| P: print routing table by router-id |\n"
+            << "| S: shutdown router by router-id     |\n"
+            << "| T: start up router by router-id     |\n"
+            << "|                                     |\n"
+            << "| Please press key to continue...     |\n"
+            << "+-------------------------------------+\n";
         
         char key;
         cin >> key;
