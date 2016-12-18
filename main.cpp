@@ -24,19 +24,28 @@ public:
     int RouterID;
     int SeqNum;
     int TTL;
-    map<string,int> ReachNet;
+    
+	//map<string,int> ReachNet;
+
+	map<int, int> ConnRouters; // connected router id => link cost
+
+
     LSP(int id,int seq){
         RouterID=id;
         SeqNum=seq;
         TTL=10;
     }
-    void AddNet(string w,int b){
-        ReachNet.insert(pair<string,int>(w,b));
-    }
+    
+// 	void AddNet(string w,int b){
+//         ReachNet.insert(pair<string,int>(w,b));
+//     }
 };
 
 class Router{
 public:
+	typedef int ROUTER_ID;
+	typedef int LINK_COST;
+
     static map<int, Router> Routers;
     
     int ID;
@@ -45,9 +54,14 @@ public:
     int LSPNum;
     int Tick;
     map<int, int> DirectConRouter; // map from : router ID => link cost
-    map<int,pair<int,int>> ReceivedLSP;
-    map<string,pair<int,int>>RoutingTable;
-    vector<list<pair<string, int>>> NetGraph;
+    
+	map<int, pair<int,int>> ReceivedLSP;
+    
+	map<string, pair<int,int>> RoutingTable;
+    
+	// vector<list<pair<string, int>>> NetGraph;
+
+	map<ROUTER_ID, map<ROUTER_ID, LINK_COST>> NetGraph;
     
     
     // init a router with invalid values
@@ -78,18 +92,33 @@ public:
     void AddTick(){
         Tick=Tick+1;
     }
-    void ReceiveLSP(LSP lsp){
-        LSP t=lsp;
-        t.TTL--;
-        if(t.TTL>0&&(ReceivedLSP.find(t.RouterID)==ReceivedLSP.end()||(ReceivedLSP.find(t.RouterID)!=ReceivedLSP.end()&&ReceivedLSP[lsp.RouterID].first<t.SeqNum))){
-            ReceivedLSP[lsp.RouterID].first=t.SeqNum;
-            ReceivedLSP[lsp.RouterID].second=Tick;
+
+	/*
+		fromRouterId: must use this ID to identify from which router the packet sent
+	*/
+    void ReceiveLSP(LSP lsp, int fromRouterId){
+        lsp.TTL--;
+
+		// indicates whether this lsp has been received
+		bool receivedLsp = ReceivedLSP.find(lsp.RouterID) != ReceivedLSP.end() 
+			&& ReceivedLSP[lsp.RouterID].first >= lsp.SeqNum;
+
+		if (lsp.TTL > 0 && !receivedLsp) {
+            ReceivedLSP[lsp.RouterID].first = lsp.SeqNum;
+            ReceivedLSP[lsp.RouterID].second = Tick;
             
-            //todo: how to send lsp?
+			bool updated = UpdateGraph(lsp);
+			cout << updated;
+
+            // forward current LSP
             for (auto it = DirectConRouter.begin(); it != DirectConRouter.end(); it++) {
                 int connRouterId = it->first;
-                
-                
+				Router* r = GetRouterById(connRouterId);
+				assert(r);
+
+				if (connRouterId != fromRouterId) {
+					r->ReceiveLSP(lsp, ID);
+				}
             }
         }
     }
@@ -101,20 +130,26 @@ public:
     }
     
     void OriginateLSP() {
-        AddNum();
-        LSP lsp(ID,LSPNum);
-        lsp.AddNet(Net, Cost);
-        AddTick();
+        
+		AddNum();
+        LSP lsp(ID, LSPNum);
+		lsp.ConnRouters = DirectConRouter;
+
+
+		
+		AddTick();
         for(map<int,pair<int,int>>::iterator iter=ReceivedLSP.begin();iter!=ReceivedLSP.end();iter++){
             if(Tick-(iter->second.second)>=2){
                 DirectConRouter[iter->first]=INFTY;
             }
         }
+
+		// send out original LSP
         for(map<int,int>::iterator it=DirectConRouter.begin();it!=DirectConRouter.end();it++){
 			int routerId = it->first;
 			Router* r = GetRouterById(routerId);
 			assert(r);
-			r->ReceiveLSP(lsp);
+			r->ReceiveLSP(lsp, this->ID);
         }
     }
     
@@ -182,6 +217,45 @@ public:
         }
     }
     
+private:
+
+	// returns true if graph was updated
+	bool UpdateGraph(const LSP& lsp)
+	{
+		bool updated = false;
+		for (auto it = lsp.ConnRouters.begin(); it != lsp.ConnRouters.end(); it++) {
+			int rid = it->first; // connected router id
+			int cost = it->second;
+
+			if (AddGraphEdge(lsp.RouterID, rid, cost)) {
+				updated = true;
+			}
+		}
+
+		return updated;
+	}
+
+	// returns -1 if edge doesn't exist
+	LINK_COST GetGraphEdge(ROUTER_ID r0, ROUTER_ID r1) {
+		auto it1 = NetGraph.find(r0);
+		if (it1 == NetGraph.end()) return -1;
+		
+		auto it2 = it1->second.find(r1);
+		if (it2 == it1->second.end()) return -1;
+
+		return it2->second;
+	}
+
+	// returns true if new edge was added or new cost value was updated
+	bool AddGraphEdge(ROUTER_ID r0, ROUTER_ID r1, LINK_COST cost) {
+		if (GetGraphEdge(r0, r1) == cost) {
+			return false;
+		} else {
+			NetGraph[r0][r1] = cost;
+			NetGraph[r1][r0] = cost;
+			return true;
+		}
+	}
 };
 
 map<int, Router> Router::Routers;
@@ -209,7 +283,7 @@ int main() {
         if (key == 'c') {
             
 			for (auto it = Router::Routers.begin(); it != Router::Routers.end(); it++) {
-				auto router = it->second;
+				auto& router = it->second;
 				router.OriginateLSP();
 			}
             
