@@ -296,8 +296,10 @@ private:
 				}
 			}
 
+			// if all routers are non-reachable
 			if (rx == -1) break;
 			
+			// relax all edges from rx
 			for (auto it = distTo.begin(); it != distTo.end(); it++) {
 				if (solved.find(it->first) != solved.end()) continue;
 				
@@ -312,6 +314,7 @@ private:
 			}
 		}
 
+		// print for debug
 		cout << "Router#" << ID << ": ";
 		for (auto it = distTo.begin(); it != distTo.end(); it++) {
 			cout << it->first << ",";
