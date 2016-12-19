@@ -15,6 +15,8 @@
 #include <sstream>
 #include <cstdio>
 #include <assert.h>
+#include <set>
+#include <limits.h>
 
 using namespace std;
 #define INFTY 2147483647;
@@ -263,6 +265,64 @@ private:
 	void UpdateRoutingTable()
 	{
 		// TODO: update routing table by running Dijkstra algorithm
+		auto& edges = NetGraph[ID];
+
+		// keys are sorted ascendingly by link cost
+		map<ROUTER_ID, LINK_COST> distTo;
+
+		// initialize distTo
+		for (auto it = NetGraph.begin(); it != NetGraph.end(); it++) {
+			ROUTER_ID rid = it->first;
+			distTo[rid] = INT_MAX;
+		}
+		for (auto it = edges.begin(); it != edges.end(); it++) {
+			ROUTER_ID rid = it->first;
+			LINK_COST cost = it->second;
+			distTo[rid] = cost;
+		}
+
+		set<ROUTER_ID> solved;
+		while (solved.size() < distTo.size()) {
+
+			// find router with minimal distance
+			ROUTER_ID rx = -1;
+			LINK_COST dx = INT_MAX;
+			for (auto it = distTo.begin(); it != distTo.end(); it++) {
+				bool unsolved = solved.find(it->first) == solved.end();
+				if (unsolved && it->second < dx) {
+					dx = it->second;
+					rx = it->first;
+					solved.insert(rx);
+				}
+			}
+
+			if (rx == -1) break;
+			
+			for (auto it = distTo.begin(); it != distTo.end(); it++) {
+				if (solved.find(it->first) != solved.end()) continue;
+				
+				ROUTER_ID ry = it->first;
+				LINK_COST dy = it->second;
+				LINK_COST xy = GetGraphEdge(rx, ry);
+				if (xy == -1) continue;
+
+				if (dx + xy < dy) {
+					it->second = dx + xy; // update dy
+				}
+			}
+		}
+
+		cout << "Router#" << ID << ": ";
+		for (auto it = distTo.begin(); it != distTo.end(); it++) {
+			cout << it->first << ",";
+			if (it->second == INT_MAX) {
+				cout << "-";
+			} else {
+				cout << it->second;
+			}
+			cout << " | ";
+		}
+		cout << endl;
 	}
 };
 
