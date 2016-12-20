@@ -20,6 +20,7 @@
 
 
 #define DEBUG_PRINT
+#define INF 10000 // adding integer to too big INF will cause overflow
 
 
 using namespace std;
@@ -153,12 +154,13 @@ public:
 		lsp.ConnRouters = DirectConRouter;
 
 		
-// 		AddTick();
-//         for(map<int,pair<int,int>>::iterator iter=ReceivedLSP.begin();iter!=ReceivedLSP.end();iter++){
-//             if(Tick-(iter->second.second)>=2){
-// 				lsp.ConnRouters.erase(iter->first);
-//             }
-//         }
+		AddTick();
+        for(map<int,pair<int,int>>::iterator iter=ReceivedLSP.begin();iter!=ReceivedLSP.end();iter++){
+            if(Tick-(iter->second.second)>=2){
+				// lsp.ConnRouters.erase(iter->first);
+				lsp.ConnRouters[iter->first] = INF;
+            }
+        }
 
 		// send out original LSP
         for(map<int,int>::iterator it=DirectConRouter.begin();it!=DirectConRouter.end();it++){
@@ -166,7 +168,7 @@ public:
 			Router* r = GetRouterById(routerId);
 			assert(r);
 
-			if (it->second < INT_MAX) {
+			if (it->second < INF) {
 				r->ReceiveLSP(lsp, this->ID);
 			}
         }
@@ -239,6 +241,13 @@ public:
 
 	void PrintRoutingTable()
 	{
+		if (IsShutdown) {
+			cout << endl << endl;
+			cout << "[ERROR] Router #" << ID << " is shutdown" << endl;
+			cout << endl << endl;
+			return;
+		}
+
 		cout << endl << endl;
 		cout << "[ ROUTING TABLE FOR ROUTER #" << ID << " ]" << endl;
 		for (auto it = RoutingTable.begin(); it != RoutingTable.end(); it++) {
@@ -317,7 +326,7 @@ private:
 		for (auto it = NetGraph.begin(); it != NetGraph.end(); it++) {
 			ROUTER_ID rid = it->first;
 			if (rid == ID) continue;
-			distTo[rid] = INT_MAX;
+			distTo[rid] = INF;
 		}
 		for (auto it = edges.begin(); it != edges.end(); it++) {
 			ROUTER_ID rid = it->first;
@@ -331,7 +340,7 @@ private:
 
 			// find router with minimal distance
 			ROUTER_ID rx = -1;
-			LINK_COST dx = INT_MAX;
+			LINK_COST dx = INF;
 			for (auto it = distTo.begin(); it != distTo.end(); it++) {
 				bool unsolved = solved.find(it->first) == solved.end();
 				if (unsolved && it->second < dx) {
@@ -360,13 +369,15 @@ private:
 			}
 		}
 
+		RoutingTable.clear();
+
 		// print for debug
 		cout << "Router#" << ID << ": ";
 		for (auto it = distTo.begin(); it != distTo.end(); it++) {
 			
 			cout << it->first << ",";
 
-			if (it->second == INT_MAX) {
+			if (it->second == INF) {
 				cout << "-";
 			} else {
 				cout << it->second;
@@ -374,29 +385,29 @@ private:
 			
 			// print second node in path
 			int nextHop = -1;
-			list<ROUTER_ID> path;
-			ROUTER_ID rid = it->first;
-			path.push_front(rid);
-			while (true) {
-				if (predNode.find(rid) == predNode.end()) break;
-				rid = predNode[rid];
-
-				path.push_front(rid);
-				if (rid == ID) break;
-			}
 			cout << ",";
-			if (path.size() > 1) {
+			if (it->second == INF) {
+				cout << "-";
+			} else {
+				list<ROUTER_ID> path;
+				ROUTER_ID rid = it->first;
+				path.push_front(rid);
+				while (true) {
+					if (predNode.find(rid) == predNode.end()) break;
+					rid = predNode[rid];
+
+					path.push_front(rid);
+					if (rid == ID) break;
+				}
+
+				assert(path.size() > 1);
 				nextHop = *(++path.begin());
 				cout << nextHop;
-			} else {
-				cout << "-";
 			}
-
 			cout << " | ";
 
 
-
-			if (it->second < INT_MAX) {
+			if (it->second < INF) {
 				if (RouterNetMap.find(it->first) != RouterNetMap.end()) {
 					const string& net = RouterNetMap[it->first];
 					RoutingTable[net] = pair<int, int>(it->second, nextHop);
