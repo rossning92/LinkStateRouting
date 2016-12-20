@@ -19,7 +19,6 @@
 #include <limits.h>
 
 using namespace std;
-#define INFTY 2147483647;
 
 class LSP{
 public:
@@ -142,28 +141,30 @@ public:
     }
     
     void OriginateLSP() {
-        
+
 		if (IsShutdown) return;
 
 		AddNum();
         LSP lsp(ID, LSPNum, Net);
 		lsp.ConnRouters = DirectConRouter;
 
-
 		
-		AddTick();
-        for(map<int,pair<int,int>>::iterator iter=ReceivedLSP.begin();iter!=ReceivedLSP.end();iter++){
-            if(Tick-(iter->second.second)>=2){
-                DirectConRouter[iter->first]=INFTY;
-            }
-        }
+// 		AddTick();
+//         for(map<int,pair<int,int>>::iterator iter=ReceivedLSP.begin();iter!=ReceivedLSP.end();iter++){
+//             if(Tick-(iter->second.second)>=2){
+// 				lsp.ConnRouters.erase(iter->first);
+//             }
+//         }
 
 		// send out original LSP
         for(map<int,int>::iterator it=DirectConRouter.begin();it!=DirectConRouter.end();it++){
 			int routerId = it->first;
 			Router* r = GetRouterById(routerId);
 			assert(r);
-			r->ReceiveLSP(lsp, this->ID);
+
+			if (it->second < INT_MAX) {
+				r->ReceiveLSP(lsp, this->ID);
+			}
         }
     }
     
@@ -462,9 +463,5 @@ int main() {
         }
     }
     
-    cout << '1'<<endl;
-    
     return 0;
 }
-
-
