@@ -30,12 +30,13 @@ public:
 	//map<string,int> ReachNet;
 
 	map<int, int> ConnRouters; // connected router id => link cost
+	string NetworkName;
 
-
-    LSP(int id,int seq){
+    LSP(int id, int seq, string networkName){
         RouterID=id;
         SeqNum=seq;
         TTL=10;
+		NetworkName = networkName;
     }
     
 // 	void AddNet(string w,int b){
@@ -50,6 +51,7 @@ public:
 
     static map<int, Router> Routers;
     
+	bool IsShutdown;
     int ID;
     string Net;
     int Cost;
@@ -59,12 +61,13 @@ public:
     
 	map<int, pair<int,int>> ReceivedLSP;
     
-	map<string, pair<int,int>> RoutingTable;
+	// <networkName, cost, nextHopRouter> 
+	map<string, pair<LINK_COST, ROUTER_ID>> RoutingTable;
     
 	// vector<list<pair<string, int>>> NetGraph;
 
 	map<ROUTER_ID, map<ROUTER_ID, LINK_COST>> NetGraph;
-    
+	map<ROUTER_ID, string> RouterNetMap;
     
     // init a router with invalid values
     // must declare this function for std::map
@@ -73,6 +76,7 @@ public:
         Cost = -1;
         LSPNum = 0;
         Tick = 0;
+		IsShutdown = false;
     }
     
     Router(int id,string net,int cost){
@@ -81,6 +85,7 @@ public:
         Cost=cost;
         LSPNum=0;
         Tick=0;
+		IsShutdown = false;
         
         // XXX: 
         // NetGraph[0].push_back(pair<string,int>(net,cost));
@@ -99,7 +104,9 @@ public:
 		fromRouterId: must use this ID to identify from which router the packet sent
 	*/
     void ReceiveLSP(LSP lsp, int fromRouterId) {
-        lsp.TTL--;
+		if (IsShutdown) return;
+		
+		lsp.TTL--;
 
 		// indicates whether this lsp has been received
 		bool receivedLsp = ReceivedLSP.find(lsp.RouterID) != ReceivedLSP.end() 
@@ -136,8 +143,10 @@ public:
     
     void OriginateLSP() {
         
+		if (IsShutdown) return;
+
 		AddNum();
-        LSP lsp(ID, LSPNum);
+        LSP lsp(ID, LSPNum, Net);
 		lsp.ConnRouters = DirectConRouter;
 
 
@@ -222,12 +231,37 @@ public:
         }
     }
     
+
+	void PrintRoutingTable()
+	{
+		for (auto it = RoutingTable.begin(); it != RoutingTable.end(); it++) {
+			cout << it->first << " - ";
+			cout << it->second.first << " - ";
+			cout << it->second.second << endl;
+		}
+	}
+
+	void Shutdown()
+	{
+		IsShutdown = true;
+		cout << "Router #" << ID << " has been shutdown" << endl;
+	}
+
+	void Startup()
+	{
+		IsShutdown = false;
+		cout << "Router #" << ID << " starts up" << endl;
+	}
+
 private:
 
 	// returns true if graph was updated
 	bool UpdateGraph(const LSP& lsp)
 	{
 		bool updated = false;
+
+		RouterNetMap[lsp.RouterID] = lsp.NetworkName;
+
 		for (auto it = lsp.ConnRouters.begin(); it != lsp.ConnRouters.end(); it++) {
 			int rid = it->first; // connected router id
 			int cost = it->second;
@@ -269,16 +303,19 @@ private:
 
 		// keys are sorted ascendingly by link cost
 		map<ROUTER_ID, LINK_COST> distTo;
+		map<ROUTER_ID, ROUTER_ID> predNode; // predecessor node of current shortest path to ROUTER_ID
 
 		// initialize distTo
 		for (auto it = NetGraph.begin(); it != NetGraph.end(); it++) {
 			ROUTER_ID rid = it->first;
+			if (rid == ID) continue;
 			distTo[rid] = INT_MAX;
 		}
 		for (auto it = edges.begin(); it != edges.end(); it++) {
 			ROUTER_ID rid = it->first;
 			LINK_COST cost = it->second;
 			distTo[rid] = cost;
+			predNode[rid] = ID;
 		}
 
 		set<ROUTER_ID> solved;
@@ -310,6 +347,7 @@ private:
 
 				if (dx + xy < dy) {
 					it->second = dx + xy; // update dy
+					predNode[ry] = rx;
 				}
 			}
 		}
@@ -317,13 +355,46 @@ private:
 		// print for debug
 		cout << "Router#" << ID << ": ";
 		for (auto it = distTo.begin(); it != distTo.end(); it++) {
+			
 			cout << it->first << ",";
+
 			if (it->second == INT_MAX) {
 				cout << "-";
 			} else {
 				cout << it->second;
 			}
+			
+			// print second node in path
+			int nextHop = -1;
+			list<ROUTER_ID> path;
+			ROUTER_ID rid = it->first;
+			path.push_front(rid);
+			while (true) {
+				if (predNode.find(rid) == predNode.end()) break;
+				rid = predNode[rid];
+
+				path.push_front(rid);
+				if (rid == ID) break;
+			}
+			cout << ",";
+			if (path.size() > 1) {
+				nextHop = *(++path.begin());
+				cout << nextHop;
+			} else {
+				cout << "-";
+			}
+
 			cout << " | ";
+
+
+
+			if (it->second < INT_MAX) {
+				if (RouterNetMap.find(it->first) != RouterNetMap.end()) {
+					const string& net = RouterNetMap[it->first];
+					RoutingTable[net] = pair<int, int>(it->second, nextHop);
+				}
+			}
+
 		}
 		cout << endl;
 	}
@@ -332,7 +403,22 @@ private:
 map<int, Router> Router::Routers;
 
 
-int main() {    
+Router* GetRouterByUserInput()
+{
+	cout << "Please input router ID: ";
+	int rid = -1;
+	cin >> rid;
+
+
+	Router* r = Router::GetRouterById(rid);
+	if (!r) {
+		cout << "ERROR: Wrong router id" << endl;
+	}
+
+	return r;
+}
+
+int main() {
     Router::InitRouters();
     
     cout << "Routers Created!" << endl;
@@ -362,11 +448,17 @@ int main() {
             cout << "Bye!" << endl;
             break;
         } else if (key == 'p') {
-            cout << "[print routing table]" << endl;
+			Router* r = GetRouterByUserInput();
+			if (!r) continue;
+			r->PrintRoutingTable();
         } else if (key == 's') {
-            cout << "[shutdown router]" << endl;
+			Router* r = GetRouterByUserInput();
+			if (!r) continue;
+			r->Shutdown();
         } else if (key == 't') {
-            cout << "[startup router]" << endl;
+			Router* r = GetRouterByUserInput();
+			if (!r) continue;
+			r->Startup();
         }
     }
     
