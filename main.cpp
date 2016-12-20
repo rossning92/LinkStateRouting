@@ -18,6 +18,10 @@
 #include <set>
 #include <limits.h>
 
+
+#define DEBUG_PRINT
+
+
 using namespace std;
 
 class LSP{
@@ -235,11 +239,14 @@ public:
 
 	void PrintRoutingTable()
 	{
+		cout << endl << endl;
+		cout << "[ ROUTING TABLE FOR ROUTER #" << ID << " ]" << endl;
 		for (auto it = RoutingTable.begin(); it != RoutingTable.end(); it++) {
 			cout << it->first << " - ";
 			cout << it->second.first << " - ";
 			cout << it->second.second << endl;
 		}
+		cout << endl;
 	}
 
 	void Shutdown()
