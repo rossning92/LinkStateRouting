@@ -276,7 +276,11 @@ private:
 	{
 		bool updated = false;
 
-		RouterNetMap[lsp.RouterID] = lsp.NetworkName;
+		// save network name
+		if (RouterNetMap.find(lsp.RouterID) == RouterNetMap.end()) {
+			updated = true;
+			RouterNetMap[lsp.RouterID] = lsp.NetworkName;
+		}
 
 		for (auto it = lsp.ConnRouters.begin(); it != lsp.ConnRouters.end(); it++) {
 			int rid = it->first; // connected router id
