@@ -30,8 +30,6 @@ public:
     int RouterID;
     int SeqNum;
     int TTL;
-    
-	//map<string,int> ReachNet;
 
 	map<int, int> ConnRouters; // connected router id => link cost
 	string NetworkName;
@@ -42,10 +40,6 @@ public:
         TTL=10;
 		NetworkName = networkName;
     }
-    
-// 	void AddNet(string w,int b){
-//         ReachNet.insert(pair<string,int>(w,b));
-//     }
 };
 
 class Router{
@@ -64,12 +58,7 @@ public:
     map<int, int> DirectConRouter; // map from : router ID => link cost
     
 	map<int, pair<int,int>> ReceivedLSP;
-    
-	// <networkName, cost, nextHopRouter> 
 	map<string, pair<LINK_COST, ROUTER_ID>> RoutingTable;
-    
-	// vector<list<pair<string, int>>> NetGraph;
-
 	map<ROUTER_ID, map<ROUTER_ID, LINK_COST>> NetGraph;
 	map<ROUTER_ID, string> RouterNetMap;
     
@@ -90,9 +79,6 @@ public:
         LSPNum=0;
         Tick=0;
 		IsOff = false;
-        
-        // XXX: 
-        // NetGraph[0].push_back(pair<string,int>(net,cost));
     }
     void AddConRouter(int a,int b){
         DirectConRouter.insert(pair<int,int>(a,b));
