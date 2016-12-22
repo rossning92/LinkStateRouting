@@ -55,7 +55,7 @@ public:
 
     static map<int, Router> Routers;
     
-	bool IsShutdown;
+	bool IsOff;
     int ID;
     string Net;
     int Cost;
@@ -80,7 +80,7 @@ public:
         Cost = -1;
         LSPNum = 0;
         Tick = 0;
-		IsShutdown = false;
+		IsOff = false;
     }
     
     Router(int id,string net,int cost){
@@ -89,7 +89,7 @@ public:
         Cost=cost;
         LSPNum=0;
         Tick=0;
-		IsShutdown = false;
+		IsOff = false;
         
         // XXX: 
         // NetGraph[0].push_back(pair<string,int>(net,cost));
@@ -108,7 +108,7 @@ public:
 		fromRouterId: must use this ID to identify from which router the packet sent
 	*/
     void ReceiveLSP(LSP lsp, int fromRouterId) {
-		if (IsShutdown) return;
+		if (IsOff) return;
 		
 		lsp.TTL--;
 
@@ -147,20 +147,29 @@ public:
     
     void OriginateLSP() {
 
-		if (IsShutdown) return;
+		if (IsOff) return;
 
 		AddNum();
         LSP lsp(ID, LSPNum, Net);
-		lsp.ConnRouters = DirectConRouter;
+		//lsp.ConnRouters = DirectConRouter;
 
 		
-		AddTick();
-        for(map<int,pair<int,int>>::iterator iter=ReceivedLSP.begin();iter!=ReceivedLSP.end();iter++){
-            if(Tick-(iter->second.second)>=2){
-				// lsp.ConnRouters.erase(iter->first);
-				lsp.ConnRouters[iter->first] = INF;
+ 		AddTick();
+		for (auto it = ReceivedLSP.begin(); it != ReceivedLSP.end(); it++){
+            if (Tick - (it->second.second) > 2) {
+				RemoveGraphNode(it->first);
+				UpdateRoutingTable();
             }
         }
+
+		for (auto it = DirectConRouter.begin(); it != DirectConRouter.end(); it++) {
+			Router* r = GetRouterById(it->first);
+			assert(r);
+			if (!r->IsShutdown()) {
+				lsp.ConnRouters[it->first] = it->second;
+			}
+		}
+
 
 		// send out original LSP
         for(map<int,int>::iterator it=DirectConRouter.begin();it!=DirectConRouter.end();it++){
@@ -241,7 +250,7 @@ public:
 
 	void PrintRoutingTable()
 	{
-		if (IsShutdown) {
+		if (IsOff) {
 			cout << endl << endl;
 			cout << "[ERROR] Router #" << ID << " is shutdown" << endl;
 			cout << endl << endl;
@@ -260,14 +269,18 @@ public:
 
 	void Shutdown()
 	{
-		IsShutdown = true;
+		IsOff = true;
 		cout << "Router #" << ID << " has been shutdown" << endl;
 	}
 
 	void Startup()
 	{
-		IsShutdown = false;
+		IsOff = false;
 		cout << "Router #" << ID << " starts up" << endl;
+	}
+
+	bool IsShutdown() {
+		return IsOff;
 	}
 
 private:
@@ -372,23 +385,24 @@ private:
 		RoutingTable.clear();
 
 		// print for debug
+#ifdef DEBUG_PRINT
 		cout << "Router#" << ID << ": ";
+#endif
 		for (auto it = distTo.begin(); it != distTo.end(); it++) {
 			
+#ifdef DEBUG_PRINT
 			cout << it->first << ",";
-
 			if (it->second == INF) {
 				cout << "-";
 			} else {
 				cout << it->second;
 			}
+#endif
 			
 			// print second node in path
 			int nextHop = -1;
-			cout << ",";
-			if (it->second == INF) {
-				cout << "-";
-			} else {
+			
+			if (it->second < INF) {
 				list<ROUTER_ID> path;
 				ROUTER_ID rid = it->first;
 				path.push_front(rid);
@@ -402,10 +416,17 @@ private:
 
 				assert(path.size() > 1);
 				nextHop = *(++path.begin());
+			}
+
+#ifdef DEBUG_PRINT
+			cout << ",";
+			if (it->second == INF) {
+				cout << "-";
+			} else {
 				cout << nextHop;
 			}
 			cout << " | ";
-
+#endif
 
 			if (it->second < INF) {
 				if (RouterNetMap.find(it->first) != RouterNetMap.end()) {
@@ -415,8 +436,20 @@ private:
 			}
 
 		}
+
+#ifdef DEBUG_PRINT
 		cout << endl;
+#endif
 	}
+
+	void RemoveGraphNode(int routerId)
+	{
+		NetGraph.erase(routerId);
+		for (auto& it = NetGraph.begin(); it != NetGraph.end(); it++) {
+			it->second.erase(routerId);
+		}
+	}
+
 };
 
 map<int, Router> Router::Routers;
