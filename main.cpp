@@ -17,6 +17,7 @@
 #include <assert.h>
 #include <set>
 #include <limits.h>
+#include <exception>
 
 
 #define DEBUG_PRINT
@@ -174,7 +175,7 @@ public:
         
         ifstream ifs("infile.dat");
 		if (!ifs) {
-			throw exception("Cannot open file infile.dat");
+			throw "Cannot open file infile.dat";
 		}
 
         string line;
@@ -435,7 +436,7 @@ private:
 	void RemoveGraphNode(int routerId)
 	{
 		NetGraph.erase(routerId);
-		for (auto& it = NetGraph.begin(); it != NetGraph.end(); it++) {
+		for (auto it = NetGraph.begin(); it != NetGraph.end(); it++) {
 			it->second.erase(routerId);
 		}
 	}
